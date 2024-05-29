@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../model/task.dart';
+import 'tasks_screen.dart';  // Import the new screens
+import 'calendar_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   static const routeName = '/home-screen';
@@ -15,6 +18,7 @@ class _HomeScreenState extends State<HomeScreen> {
   late TextEditingController _taskController;
   List<Task> _tasks = [];
   List<bool> _tasksDone = [];
+  int _selectedIndex = 0;  // Index to manage selected bottom navigation bar item
 
   @override
   void initState() {
@@ -63,6 +67,19 @@ class _HomeScreenState extends State<HomeScreen> {
     _getTasks();
   }
 
+  // Define the list of screens to display
+  final List<Widget> _screens = [
+    TasksScreen(),
+    CalendarScreen(),
+    ProfileScreen(),
+  ];
+
+  void _onItemTapped(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -86,108 +103,141 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ],
       ),
-      body: _tasks.isEmpty
-          ? const Center(
-              child: Text('No Tasks added yet!'),
-            )
-          : Column(
-              children: _tasks.map((task) {
-                int index = _tasks.indexOf(task);
-                return Container(
-                  height: 70.0,
-                  width: MediaQuery.of(context).size.width,
-                  margin: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-                  padding: const EdgeInsets.only(left: 10.0),
-                  alignment: Alignment.centerLeft,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(5.0),
-                    border: Border.all(color: Colors.black, width: 0.5),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        task.task,
-                        style: GoogleFonts.montserrat(),
-                      ),
-                      Checkbox(
-                        value: _tasksDone[index],
-                        onChanged: (val) {
-                          setState(() {
-                            _tasksDone[index] = val!;
-                          });
-                        },
-                      ),
-                    ],
-                  ),
-                );
-              }).toList(),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: <Widget>[
+            DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text(
+                'Drawer Header',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                ),
+              ),
             ),
+            ListTile(
+              leading: Icon(Icons.task),
+              title: Text('Tasks'),
+              onTap: () {
+                Navigator.pop(context);
+                _onItemTapped(0);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.calendar_today),
+              title: Text('Calendar'),
+              onTap: () {
+                Navigator.pop(context);
+                _onItemTapped(1);
+              },
+            ),
+            ListTile(
+              leading: Icon(Icons.person),
+              title: Text('Profile'),
+              onTap: () {
+                Navigator.pop(context);
+                _onItemTapped(2);
+              },
+            ),
+          ],
+        ),
+      ),
+      body: _screens[_selectedIndex],  // Display the selected screen
+      bottomNavigationBar: BottomNavigationBar(
+        items: const <BottomNavigationBarItem>[
+          BottomNavigationBarItem(
+            icon: Icon(Icons.task),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.calendar_today),
+            label: 'Calendar',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
+        currentIndex: _selectedIndex,
+        selectedItemColor: Colors.blue,
+        onTap: _onItemTapped,
+      ),
       floatingActionButton: FloatingActionButton(
         child: const Icon(Icons.add, color: Colors.white),
         backgroundColor: Colors.blue,
         onPressed: () => showModalBottomSheet(
           context: context,
-          builder: (BuildContext context) => Container(
-            padding: const EdgeInsets.all(10.0),
-            height: 250,
-            color: Colors.blue[200],
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          isScrollControlled: true,
+          builder: (BuildContext context) => Padding(
+            padding: MediaQuery.of(context).viewInsets, // Adjust the padding for the keyboard
+            child: SingleChildScrollView(
+              child: Container(
+                padding: const EdgeInsets.all(10.0),
+                height: 250,
+                color: Colors.blue[200],
+                child: Column(
+                  mainAxisSize: MainAxisSize.min, // Make sure the column takes the minimum space required
                   children: [
-                    Text(
-                      'Add task',
-                      style: GoogleFonts.montserrat(color: Colors.white, fontSize: 20.0),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          'Add task',
+                          style: GoogleFonts.montserrat(color: Colors.white, fontSize: 20.0),
+                        ),
+                        GestureDetector(
+                          onTap: () => Navigator.of(context).pop(),
+                          child: const Icon(Icons.close),
+                        ),
+                      ],
                     ),
-                    GestureDetector(
-                      onTap: () => Navigator.of(context).pop(),
-                      child: const Icon(Icons.close),
+                    const Divider(thickness: 1.2),
+                    const SizedBox(height: 20.0),
+                    TextField(
+                      controller: _taskController,
+                      decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(5.0),
+                          borderSide: const BorderSide(color: Colors.blue),
+                        ),
+                        fillColor: Colors.white,
+                        filled: true,
+                        hintText: 'Enter task',
+                        hintStyle: GoogleFonts.montserrat(),
+                      ),
+                    ),
+                    const SizedBox(height: 20.0),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 5.0),
+                      width: MediaQuery.of(context).size.width,
+                      child: Row(
+                        children: [
+                          Container(
+                            width: (MediaQuery.of(context).size.width / 2) - 20,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                              child: Text('RESET', style: GoogleFonts.montserrat()),
+                              onPressed: () => _taskController.text = '',
+                            ),
+                          ),
+                          Container(
+                            width: (MediaQuery.of(context).size.width / 2) - 20,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
+                              child: Text('ADD', style: GoogleFonts.montserrat()),
+                              onPressed: saveData,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
-                const Divider(thickness: 1.2),
-                const SizedBox(height: 20.0),
-                TextField(
-                  controller: _taskController,
-                  decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(5.0),
-                      borderSide: const BorderSide(color: Colors.blue),
-                    ),
-                    fillColor: Colors.white,
-                    filled: true,
-                    hintText: 'Enter task',
-                    hintStyle: GoogleFonts.montserrat(),
-                  ),
-                ),
-                const SizedBox(height: 20.0),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 5.0),
-                  width: MediaQuery.of(context).size.width,
-                  child: Row(
-                    children:  [
-                      Container(
-                        width: (MediaQuery.of(context).size.width / 2) - 20,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
-                          child: Text('RESET', style: GoogleFonts.montserrat()),
-                          onPressed: () => _taskController.text = '',
-                        ),
-                      ),
-                      Container(
-                        width: (MediaQuery.of(context).size.width / 2) - 20,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(backgroundColor: Colors.blue),
-                          child: Text('ADD', style: GoogleFonts.montserrat()),
-                          onPressed: saveData,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
